@@ -20,33 +20,31 @@ app.get("/", function (req, res) {
 
 
 // API timestamp
-app.get('/api/timestamp/:date?', (req, res) => {
+
+app.get('/api/timestamp', (req, res) => {
+  const now = new Date();
+  res.json({
+    unix: now.getTime(),
+    utc: now.toUTCString()
+  });
+});
+
+// 2️⃣ /api/timestamp/:date → con parámetro (puede ser fecha o unix)
+app.get('/api/timestamp/:date', (req, res) => {
   const dateParam = req.params.date;
 
-  // Si no hay parámetro, usar fecha actual
-  if (!dateParam) {
-    const now = new Date();
-    return res.json({
-      unix: now.getTime(),
-      utc: now.toUTCString()
-    });
-  }
+  // Si el parámetro solo contiene dígitos, interpretarlo como UNIX
+  const date = /^\d+$/.test(dateParam)
+    ? new Date(parseInt(dateParam))
+    : new Date(dateParam);
 
-  // Si el parámetro es sólo dígitos -> tratar como unix en ms
-  const onlyDigits = /^\d+$/.test(dateParam);
-
-  let date;
-  if (onlyDigits) {
-    date = new Date(parseInt(dateParam)); // números en ms
-  } else {
-    date = new Date(dateParam);
-  }
-
+  // Validar si es fecha válida
   if (date.toString() === 'Invalid Date') {
     return res.json({ error: 'Invalid Date' });
   }
 
-  return res.json({
+  // Respuesta correcta
+  res.json({
     unix: date.getTime(),
     utc: date.toUTCString()
   });
