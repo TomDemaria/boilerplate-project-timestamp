@@ -19,14 +19,41 @@ app.get("/", function (req, res) {
 });
 
 
-// your first API endpoint... 
-app.get("/api/hello", function (req, res) {
-  res.json({greeting: 'hello API'});
+// API timestamp
+app.get('/api/timestamp/:date?', (req, res) => {
+  const dateParam = req.params.date;
+
+  // Si no hay parámetro, usar fecha actual
+  if (!dateParam) {
+    const now = new Date();
+    return res.json({
+      unix: now.getTime(),
+      utc: now.toUTCString()
+    });
+  }
+
+  // Si el parámetro es sólo dígitos -> tratar como unix en ms
+  const onlyDigits = /^\d+$/.test(dateParam);
+
+  let date;
+  if (onlyDigits) {
+    date = new Date(parseInt(dateParam)); // números en ms
+  } else {
+    date = new Date(dateParam);
+  }
+
+  if (date.toString() === 'Invalid Date') {
+    return res.json({ error: 'Invalid Date' });
+  }
+
+  return res.json({
+    unix: date.getTime(),
+    utc: date.toUTCString()
+  });
 });
 
-
-
-// Listen on port set in environment variable or default to 3000
-var listener = app.listen(process.env.PORT || 3000, function () {
-  console.log('Your app is listening on port ' + listener.address().port);
+// puerto
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });
