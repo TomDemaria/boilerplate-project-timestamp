@@ -1,57 +1,58 @@
 // index.js
 // where your node app starts
 
-// init project
-var express = require('express');
-var app = express();
+const express = require('express');
+const cors = require('cors');
+const app = express();
 
-// enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
-// so that your API is remotely testable by FCC 
-var cors = require('cors');
-app.use(cors({optionsSuccessStatus: 200}));  // some legacy browsers choke on 204
-
-// http://expressjs.com/en/starter/static-files.html
+app.use(cors({ optionsSuccessStatus: 200 }));
 app.use(express.static('public'));
 
-// http://expressjs.com/en/starter/basic-routing.html
-app.get("/", function (req, res) {
+app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html');
 });
 
-
-// API timestamp
-
-app.get('/api/timestamp', (req, res) => {
-  const now = new Date();
-  res.json({
-    unix: now.getTime(),
-    utc: now.toUTCString()
-  });
-});
-
-// 2️⃣ /api/timestamp/:date → con parámetro (puede ser fecha o unix)
-app.get('/api/timestamp/:date', (req, res) => {
+// Unified handler for /api/timestamp and /api/timestamp/:date?
+app.get('/api/timestamp/:date?', (req, res) => {
   const dateParam = req.params.date;
 
-  // Si el parámetro solo contiene dígitos, interpretarlo como UNIX
-  const date = /^\d+$/.test(dateParam)
-    ? new Date(parseInt(dateParam))
-    : new Date(dateParam);
+  // No parameter -> fecha actual
+  if (!dateParam) {
+    const now = new Date();
+    return res.json({ unix: now.getTime(), utc: now.toUTCString() });
+  }
 
-  // Validar si es fecha válida
+  // Detectar si es un número entero (incluye negativo)
+  const isNumeric = /^-?\d+$/.test(dateParam);
+
+  let date;
+  if (isNumeric) {
+    // Si es número, puede venir en segundos (10 dígitos) o ms (13 dígitos)
+    // Convertimos a Number y normalizamos a ms
+    const num = Number(dateParam);
+    if (dateParam.length === 13) {
+      date = new Date(num);        // ya está en ms
+    } else if (dateParam.length === 10) {
+      date = new Date(num * 1000); // segundos -> ms
+    } else {
+      // Caso general: usar Number como ms (fallback)
+      date = new Date(num);
+    }
+  } else {
+    // No numérico: parsear como fecha legible por Date
+    date = new Date(dateParam);
+  }
+
+  // Validar
   if (date.toString() === 'Invalid Date') {
     return res.json({ error: 'Invalid Date' });
   }
 
-  // Respuesta correcta
-  res.json({
-    unix: date.getTime(),
-    utc: date.toUTCString()
-  });
+  // Responder con el formato requerido
+  return res.json({ unix: date.getTime(), utc: date.toUTCString() });
 });
 
-// puerto
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`✅ Server listening on port ${PORT}`);
 });
